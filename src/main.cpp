@@ -1,4 +1,3 @@
-
 #include <windows.h>
 #include <httpfilt.h>
 #include <wpxhttpfilt.h>
@@ -93,42 +92,4 @@ static DWORD OnPreprocHeaders ( PHTTP_FILTER_CONTEXT pfc, PHTTP_FILTER_PREPROC_H
 		} else {
 			return SF_STATUS_REQ_ERROR;
 		}
-
-	/*
-	DWORD bytesInHeader = MAX_HVALUE_SIZE, 
-	char newhvalue[MAX_HVALUE_SIZE], *pch;
-	
-	if ( pReqHeaders->GetHeader (pfc, (LPSTR) X_FORWARDED_FOR, (LPVOID) newhvalue, &bytesInHeader) )
-    {
-		while ( bytesInHeader + IPLen + 1 > MAX_HVALUE_SIZE ) {
-			pch = (char*) memchr (newhvalue, ';', bytesInHeader);
-			if ( pch == NULL ) {
-				bytesInHeader = 1;
-				newhvalue[0] = 0;
-			} else {
-				pch++;
-				bytesInHeader = sizeof(pch);		
-				memcpy(newhvalue,pch,bytesInHeader);
-				memcpy(&newhvalue[bytesInHeader-1],hseparator,sizeof(hseparator));
-				bytesInHeader+=sizeof(hseparator);
-			}
-		}
-		memcpy(&newhvalue[bytesInHeader-1],RemoteIP,IPLen);
-		if ( pReqHeaders->SetHeader (pfc, (LPSTR) X_FORWARDED_FOR, (LPSTR) newhvalue) )
-		{
-			return SF_STATUS_REQ_NEXT_NOTIFICATION;
-		} else {
-	        return SF_STATUS_REQ_ERROR;
-		}
-    }
-    else 
-    { 
-		memcpy(newhvalue,RemoteIP,IPLen);
-		if ( pReqHeaders->AddHeader (pfc, (LPSTR) X_FORWARDED_FOR, (LPSTR) newhvalue) )
-		{
-			return SF_STATUS_REQ_NEXT_NOTIFICATION;
-		} else {
-			return SF_STATUS_REQ_ERROR;
-		}
-	} */
 }

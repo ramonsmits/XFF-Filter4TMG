@@ -117,8 +117,3 @@ HRESULT RegisterWebFilter(bool fRegister)
     CoUninitialize( );
     return hr;
 }
-
-
-
-
-
