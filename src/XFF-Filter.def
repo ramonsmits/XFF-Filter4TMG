@@ -1,0 +1,13 @@
+; XFF-Filter.def : Declares the module parameters.
+
+LIBRARY      "XFF-Filter.DLL"
+
+EXPORTS
+	DllRegisterServer   PRIVATE
+	DllUnregisterServer	PRIVATE
+	HttpFilterProc
+	GetFilterVersion
+	TerminateFilter
+	
+
+	
