@@ -20,6 +20,10 @@ It seems that the filter behaves as described on xff article on wikipedia.
 * Create the X-Forwarded-For header and set its value to the value from `REMOTE_ADDR`
 * When the header already exists the `REMOTE_ADDR` value is prepended with a comma to the existing value (client1, proxy1, proxy2, etc.)
 
+## Download
+
+You can [download the XFF-Filter4TMG source via github][source], [clone the github repository][git] or [download the XFF-Filter4TMG binary][binary] in an archive
+
 
 ## Installation
 
@@ -39,3 +43,6 @@ The code is licensed under a [Creative Commons Attribution-NonCommercial-ShareAl
 [blog]: http://itboard.ro/blogs/jurnal_de_vet/archive/2011/03/30/x-forwarded-for-pentru-tmg.aspx
 [wikipedia]: http://en.wikipedia.org/wiki/X-Forwarded-For
 [license]: http://creativecommons.org/licenses/by-nc-sa/3.0/
+[binary]: http://ramonsmits.com/downloads/XFF-Filter4TMG.zip
+[source]: https://github.com/ramonsmits/XFF-Filter4TMG/archive/master.zip
+[git]: git://github.com/ramonsmits/XFF-Filter4TMG.git
