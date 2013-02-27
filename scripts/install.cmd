@@ -6,4 +6,4 @@ REM Copy filter to TMG application folder
 copy XFF-Filter.dll "C:\Program Files\Microsoft Forefront Threat Management Gateway"
 
 REM registering the DLL with regsvr32 and then filter visible in list TMG console, which can be enabled / disabled:
-regsvr32 XFF-Filter.dll
+regsvr32 "C:\Program Files\Microsoft Forefront Threat Management Gateway\XFF-Filter.dll"
