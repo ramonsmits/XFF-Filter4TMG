@@ -1,5 +1,4 @@
-;
-#import "msfpccom.tlb" rename_namespace("ISALIB") named_guids
+#import "_midl\msfpccom.tlb" rename_namespace("ISALIB") named_guids
 
 #pragma warning(disable:4710)
 

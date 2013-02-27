@@ -125,6 +125,7 @@
       <AdditionalIncludeDirectories>..\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TargetEnvironment>Win32</TargetEnvironment>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <OutputDirectory>.\_midl</OutputDirectory>
     </Midl>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -164,6 +165,7 @@
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <OutputDirectory>.\_midl</OutputDirectory>
     </Midl>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -203,6 +205,7 @@
       <TargetEnvironment>Win32</TargetEnvironment>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
       <HeaderFileName>%(Filename)_h.h</HeaderFileName>
+      <OutputDirectory>.\_midl</OutputDirectory>
     </Midl>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -240,6 +243,7 @@
       <AdditionalIncludeDirectories>..\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
       <HeaderFileName>%(Filename)_h.h</HeaderFileName>
+      <OutputDirectory>.\_midl</OutputDirectory>
     </Midl>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
