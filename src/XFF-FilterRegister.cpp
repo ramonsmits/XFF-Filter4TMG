@@ -4,14 +4,14 @@
 #pragma warning(disable:4710)
 
 // This will be the filter GUID.
-const char StrGuid[] = "{87F18571-C71D-4a2f-1313-FE0927AB0B50}";
+const char StrGuid[] = "{87F18571-C71D-4a2f-1313-FE0927AB0B51}";
 
 // This is the filter's relative path to Forefront TMG root.
 // E.g. If Forefront TMG is installed in "\Program Files\Microsoft Forefront Threat Management Gateway" Then
-// you should copy your XFF-FilterF.dll to
-// <Forefront TMG installation point>\XFF-FilterF.dll
+// you should copy your XFF-Filter.dll to
+// <Forefront TMG installation point>\XFF-Filter.dll
 // (Typically <Forefront TMG installation point> will be \Program Files\Microsoft Forefront Threat Management Gateway)
-const char FilterRelativePath[] = "XFF-FilterF.dll";
+const char FilterRelativePath[] = "XFF-Filter.dll";
 
 
 HRESULT RegisterWebFilter(bool fRegister);
@@ -82,8 +82,8 @@ HRESULT RegisterWebFilter(bool fRegister)
         {
             try
             {
-                pFilter =  pWebFilters->Add(StrGuid,"X-Forwarded-For",FilterRelativePath,ISALIB::fpcFilterPriority_Medium,ISALIB::fpcFilterDirectionForward);
-                pFilter->PutDescription("Add ClientIP in X-Forwarded-For header for forward-proxy requests - Gabriel Citron <gcitron@gmail.com>");
+                pFilter =  pWebFilters->Add(StrGuid,"X-Forwarded-For",FilterRelativePath,ISALIB::fpcFilterPriority_High,ISALIB::fpcFilterDirectionReverse);
+                pFilter->PutDescription("Add ClientIP in X-Forwarded-For header for reverse-proxy requests - Gabriel Citron <gcitron@gmail.com>");
                 pFilter->PutVendor("Gabriel Citron");
                 pFilter->PutVersion("1.1");			                
                 pWebFilters->Save(VARIANT_FALSE, VARIANT_TRUE);			    
