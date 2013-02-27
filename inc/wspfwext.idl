@@ -1,0 +1,1998 @@
+/*++
+
+Copyright (c) Microsoft Corporation. All rights reserved.
+THIS CODE IS MADE AVAILABLE AS IS, WITHOUT WARRANTY OF ANY KIND.
+THE ENTIRE RISK OF THE USE OR THE RESULTS FROM THE USE OF THIS CODE REMAINS WITH THE USER.
+USE AND REDISTRIBUTION OF THIS CODE, WITH OR WITHOUT MODIFICATION, IS HEREBY PERMITTED.
+
+--*/
+
+//#---------------------------------------------------------------
+//  File:       wspfwext.idl
+//
+//  Synopsis:   Microsoft ISA Server "Stingray"
+//              application filter interfaces
+//
+//----------------------------------------------------------------
+
+import "unknwn.idl";
+import "wspfwtyp.h";
+import "msfpccom.idl";
+
+cpp_quote("#include <wspfwerr.h>")
+
+//
+// Forward declarations
+//
+interface IFWXSession;
+interface IFWXSessionFilter;
+interface IFWXSocket;
+interface IFWXConnection;
+interface IFWXDataFilter;
+interface IFWXNetworkSocket;
+interface IFWXNetworkSocketInspection;
+interface IFWXFirewall;
+interface IFWXFirewall2;
+interface IFWXFirewall3;
+interface IFWXOverlapped;
+interface IFWXFirewallAction;
+interface IFWXGetXByY;
+interface IFWXUdpDestination;
+interface IFWXIpFilter;
+interface IFWXAuthenticatedUser;
+interface IFWXAuthenticationCompletion;
+interface IFWXRadiusAuthenticator;
+interface IFWXNetConfigDetector;
+interface IFWXNetworkElement;
+interface IFWXNetworkAdapter;
+interface IFWXNetworkAdapter2;
+interface IFWXNetworkAddress;
+interface IFWXNetConfigDetectionNotification;
+interface IFWXNetworkSet;
+interface IFWXNetConfigDetectionSnapshot;
+interface IFWXLowResourceRecoverer;
+interface IFWXLowResourceRecoveryOperation;
+interface IFWXReservedPorts;
+
+
+cpp_quote("#define FWX_SESSION_NAT 1")
+cpp_quote("#define FWX_SESSION_AUTHENTICATED 2")
+cpp_quote("#define FWX_SESSION_TERMINATED 4")
+cpp_quote("#define FWX_SESSION_PRIVATE 8")
+
+
+cpp_quote("#define FWX_CONNECTION_INTERNAL_ADDRESS_TRANSLATION 0x80000000")
+
+cpp_quote("#define FWX_FLAG_ALLOW_MULTIPLE      1")
+cpp_quote("#define FWX_FLAG_TIMEOUT             2")
+cpp_quote("#define FWX_FLAG_NO_KERNEL_MODE      4")
+cpp_quote("#define FWX_FLAG_ADDRESS_BASED       8")
+cpp_quote("#define FWX_FLAG_BIDIRECTIONAL       16")
+cpp_quote("#define FWX_FLAG_PROXY_MODE          32")
+
+cpp_quote("#define FWX_FLAG_RESERVED_0          64")
+
+cpp_quote("#define FWX_FLAG_ALLOW_ADDRESSES_IN_CLASS_C_NETWORK 128")
+cpp_quote("#define FWX_FLAG_ALLOW_ADDRESSES_IN_NETWORK         256")
+cpp_quote("#define FWX_FLAG_ALLOW_ADDRESSES_ALL                512")
+cpp_quote("#define FWX_INCREASE_RECEIVE_BUFFER                 1024")
+
+cpp_quote("#define FWX_FLAG_RESERVED_1                        2048")
+cpp_quote("#define FWX_FLAG_IGNORE_RESTRICTED_PORTS           4096")
+
+cpp_quote("#define FWX_FLAG_EMULATE_PROTOCOL    1")
+
+
+// Protocols
+cpp_quote("#define FWX_PROTOCOL_UDP        17")
+cpp_quote("#define FWX_PROTOCOL_TCP        6")
+cpp_quote("#define FWX_PROTOCOL_GRE        47")
+
+cpp_quote("#ifndef USERCONTEXTTYPE_DEFINED")
+cpp_quote("#define USERCONTEXTTYPE_DEFINED")
+typedef __int64 UserContextType;
+cpp_quote("#endif // USERCONTEXTTYPE_DEFINED")
+
+cpp_quote("#define FWX_FLAG_USE_MIME            1")
+cpp_quote("#define FWX_FLAG_USE_EXTENTION       2")
+
+cpp_quote("#define FWX_INVALID_NCD_HANDLE_VALUE  ((unsigned int)(-1))")
+
+// Defines the types of events to which a filter may hook.
+typedef enum _tagFwxFirewallEventType {
+    fwx_Connect_Tcp              = 0x00000001,
+    // Connect request for TCP sockets.
+    fwx_Udp_Destination          = 0x00000002,
+    // Connect request for UDP sockets.
+    fwx_Bind_Tcp                 = 0x00000004,
+    // Bind request for TCP sockets.
+    fwx_Bind_Udp                 = 0x00000008,
+    // Bind request for UDP sockets.
+    fwx_Listen                   = 0x00000010,
+    // Listen on a TCP socket.
+    fwx_AcceptedConnection       = 0x00000020,
+    // Actual inbound connection on a listening TCP socket.
+    fwx_GetHostByName            = 0x00000040,
+    // The WinSock Proxy client calls the <f GetHostByName> function.
+    fwx_GetHostByAddr            = 0x00000080,
+    // The WinSock Proxy client calls the <f GetHostByAddr> function.
+    fwx_ConnectionTerminating    = 0x00000100,
+    // Notification before shutting down a connection object.
+    fwx_EstablishedConnection    = 0x00000200,
+    // Notification for connections established for
+    // AllowFutureConnect, BindForClient, and RedirectConnections.
+    fwx_NatPtConnection          = 0x00000400
+    // Flag that AF sets if it supports NAT-PT connections.
+} FwxFirewallEventType;
+
+
+// Defines the type of possible socket timeouts
+typedef enum _tagFwxTimeoutType {
+    fwxSendTimeout          = 0x00000001,
+    fwxRecvTimeout          = 0x00000002,
+    fwxAcceptTimeout        = 0x00000004,
+    fwxAcceptExTimeout      = 0x00000008,
+    fwxAcceptExRecvTimeout  = 0x00000010,
+    fwxConnectExSendTimeout = 0x00000020
+} FwxTimeoutType;
+
+typedef enum _tagFwxSslSocketSide {
+    fwxServerSide = 1,
+    fwxClientSide
+} FwxSslSocketSide;
+
+//  Contains values that indicate the source of an event.
+typedef [v1_enum] enum _tagFwxFirewallEventSource {
+    fwxSourceWSP                     = 0x40000000,
+    fwxSourceNAT                     = 0x80000000
+} FwxFirewallEventSource;
+
+cpp_quote("#define FWX_ALL_SOURCES  (fwxSourceNAT | fwxSourceWSP)")
+
+typedef enum _tagFwxFirewallEventProtocolSource {
+    fwxAnyProtocol                           = 0x01000000,
+    fwxAssociatedProtocolsAllConnections     = 0x02000000
+} FwxFirewallEventProtocolSource;
+
+// Contains values that indicate the type of access
+// permission for a filter event.
+typedef enum _tagFwxFilterAccess {
+    FWX_ALLOW,
+
+    FWX_DENY,
+
+    FWX_PASS,
+
+    FWX_EMULATE,
+
+    FWX_INTERNAL1,                       // firewall internal use only.
+    FWX_INTERNAL2                        // firewall internal use only.
+} FwxFilterAccess;
+
+// IFWXPerRuleDataplugin
+[
+    object,
+    uuid(0aebe414-54a2-4771-8fee-cadec3e7a093),  // IID_IFWXPerRuleDataplugin
+    pointer_default(unique)
+]
+interface IFWXPerRuleDataplugin : IUnknown
+{
+
+    HRESULT CompareRulesData(
+        [in]  IFWXPerRuleDataplugin *pProcessedRulesData
+        );
+
+}
+
+
+// IFWXPerRuleData
+[
+    object,
+    uuid(c940acc0-6271-4b90-9128-5894d86415d5),  // IID_IFWXPerRuleData
+    pointer_default(unique)
+]
+interface IFWXPerRuleData : IUnknown
+{
+
+    HRESULT PrepareRulesData(
+        [in]   IFPCPolicyRule *pPolicyRule,
+        [out]  IFWXPerRuleDataplugin **ProcessedRulesData
+        );
+
+}
+
+// Contains parameters for the <e FwxFirewallEventType.fwx_EstablishedConnection>
+// event.
+
+typedef struct _tagFwxEstablishedConnectionEvent {
+    INT               Protocol;
+    [ref] LPSOCKADDR  Address;
+    DWORD       AddressLength;
+    IFWXConnection *piConnection;
+    IUnknown       *UserContext;
+} FwxEstablishedConnectionEvent;
+
+// Contains parameters for the <e FwxFirewallEventType.fwx_Connect_Tcp>
+// event.
+typedef struct _tagFwxConnectEvent {
+    [ref] LPSOCKADDR  Address;
+    DWORD       AddressLength;
+    IFWXConnection *piConnection;
+    FwxFilterAccess FilterAccess;
+    IFWXPerRuleDataplugin       *PerRuleProcessedData;
+    GUID           ProtocolGuid;
+    BOOL           IsSecondary;
+} FwxConnectEvent;
+
+
+// Contains parameters for the <e FwxFirewallEventType.fwx_Udp_Destination>
+// event.
+typedef struct _tagFwxUdpDestination {
+    [ref] LPSOCKADDR  Address;
+    DWORD       AddressLength;
+    IFWXConnection *piConnection;
+    IFWXUdpDestination    *piUdpDestination;
+    FwxFilterAccess FilterAccess;
+    IFWXPerRuleDataplugin       *PerRuleProcessedData;
+    GUID           ProtocolGuid;
+    BOOL           IsSecondary;
+} FwxUdpDestination;
+
+
+// Contains parameters for the <e FwxFirewallEventType.fwx_ConnectionTerminating>
+// event.
+typedef struct _tagFwxEndConnectionEvent {
+    IFWXConnection *piConnection;
+} FwxEndConnectionEvent;
+
+
+// Contains parameters for the <e FwxFirewallEventType.fwx_Bind_Udp> and
+// <e FwxFirewallEventType.fwx_Bind_Tcp> events.
+typedef struct _tagFwxBindEvent {
+    [ref] LPSOCKADDR  Address;
+    DWORD       AddressLength;
+    IFWXConnection *piConnection;
+    FwxFilterAccess FilterAccess;
+    IFWXPerRuleDataplugin       *PerRuleProcessedData;
+    GUID         ProtocolGuid;
+    BOOL         IsSecondary;
+} FwxBindEvent;
+
+
+// Contains parameters for the <e FwxFirewallEventType.fwx_Listen> event.
+typedef struct _tagFwxListenEvent {
+    [ref] LPSOCKADDR     Address;
+    DWORD         AddressLength;
+    IFWXConnection *piConnection;
+    GUID           ProtocolGuid;
+} FwxListenEvent;
+
+
+// Contains parameters for the <e FwxFirewallEventType.fwx_AcceptedConnection> event.
+typedef struct _tagFwxAcceptEvent {
+    [ref] LPSOCKADDR    RemoteAddress;
+    DWORD        RemoteAddressLength;
+    [ref] LPSOCKADDR    LocalAddress;
+    DWORD        LocalAddressLength;
+    IFWXConnection *piConnectionAccepted;
+    FwxFilterAccess FilterAccess;
+    IFWXPerRuleDataplugin       *PerRuleProcessedData;
+    GUID           ProtocolGuid;
+    BOOL            IsSecondary;
+} FwxAcceptEvent;
+
+// Contains parameters for the <e FwxFirewallEventType.fwx_GetHostByAddr> event.
+typedef struct _tagFwxGetHostByAddrEvent {
+    [size_is(AddressLength), length_is(AddressLength)]
+    BYTE         *Address;
+
+    DWORD         AddressLength;
+
+    INT           AddressType;
+
+    LPHOSTENT     Hostent;
+
+    DWORD         HostentLength;
+
+    BOOL          fBeforeAction;
+
+    FwxFilterAccess  FilterAccess;
+    IFWXGetXByY *piGetXByY;
+} FwxGetHostByAddrEvent;
+
+
+// Contains parameters for the <e FwxFirewallEventType.fwx_GetHostByName> event.
+typedef struct _tagFwxGetHostByNameEvent {
+    [ref] LPSTR         Hostname;
+
+    LPHOSTENT     Hostent;
+
+    DWORD         HostentLength;
+
+    BOOL          fBeforeAction;
+
+    FwxFilterAccess  FilterAccess;
+    IFWXGetXByY *piGetXByY;
+} FwxGetHostByNameEvent;
+
+// FwxFirewallEventParameters;
+
+[switch_type(FwxFirewallEventType)] typedef union _tagFwxFirewallEventParameters {
+    [case (fwx_Connect_Tcp)] FwxConnectEvent       Connect;
+    [case (fwx_Udp_Destination)] FwxUdpDestination     UdpDest;
+    [case (fwx_Bind_Udp, fwx_Bind_Tcp)] FwxBindEvent          Bind;
+    [case (fwx_Listen)] FwxListenEvent        Listen;
+    [case (fwx_AcceptedConnection)]  FwxAcceptEvent        Accept;
+    [case (fwx_GetHostByAddr)] FwxGetHostByAddrEvent GetHostByAddr;
+    [case (fwx_GetHostByName)] FwxGetHostByNameEvent GetHostByName;
+    [case (fwx_ConnectionTerminating)] FwxEndConnectionEvent EndConnect;
+    [case (fwx_EstablishedConnection)] FwxEstablishedConnectionEvent EstablishedConnection;
+} FwxFirewallEventParameters;
+
+
+
+// Describes a proxy event.
+typedef struct _tagFwxFirewallEvent {
+    FwxFirewallEventType EventType;
+    FwxFirewallEventSource EventSource;
+    [switch_is(EventType)] FwxFirewallEventParameters Parameters;
+} FwxFirewallEvent;
+
+
+// Defines all the events that a plug-in wants to monitor.
+typedef struct _tagFwxFilterHookEvents {
+    DWORD                                     dwGlobalEvents;
+} FwxFilterHookEvents;
+
+typedef FwxFilterHookEvents *PFwxFilterHookEvents;
+
+
+
+
+// Contains values used to specify the order of
+// data filters for the same connection.
+typedef enum _tagFwxDataFilterPriorityClass {
+    fwx_dfpc_NAT,
+    fwx_dfpc_Internal,
+    fwx_dfpc_PostTrust,
+    fwx_dfpc_Middle,
+    fwx_dfpc_PreTrust,
+    fwx_dfpc_External,
+    fwx_dfpc_Emulation
+} FwxDataFilterPriorityClass;
+
+
+typedef IFWXConnection *PFWXICONNECTION;
+typedef IFWXFirewallAction *PFWXIFIREWALLACTION;
+
+// IFWXFilter
+
+[
+    object,
+    uuid(FC5F4665-0110-40F9-8188-5A62A29462DE),  // IID_IFWXFilter
+    pointer_default(unique)
+]
+interface IFWXFilter : IUnknown
+{
+
+    HRESULT FilterInit(
+        [in]  IFWXFirewall *  pIFWXFirewall,
+        [out] FwxFilterHookEvents * pFilterHookEvents
+        );
+
+    HRESULT FilterShutdown();
+
+
+    HRESULT AttachToSession(
+        [in]   IFWXSession *piSession,
+        [out]  IFWXSessionFilter ** piSessionFilter,
+        [in, out]  PFwxFilterHookEvents pFilterHookEvents
+        );
+
+}
+
+// IFWXPolicyChangeNotification
+[
+    object,
+    uuid(74465d64-6a2e-486e-a1ce-a7f2140868b4),  // IID_IFWXPolicyChangeNotification
+    pointer_default(unique)
+]
+interface IFWXPolicyChangeNotification : IUnknown
+{
+    HRESULT ReloadConfiguration();
+}
+
+
+// IFWXSessionFilter
+
+[
+    object,
+    uuid(0CF075B1-A8F6-11d0-A7F1-0000F8750B21),  // IID_IFWXSessionFilter
+    pointer_default(unique)
+]
+interface IFWXSessionFilter : IUnknown {
+
+    //
+    HRESULT FirewallEventHandler(
+        [in][ref] const FwxFirewallEvent *pProxyEvent
+        );
+
+
+    HRESULT Detach();
+
+}
+
+
+// IFWXFirewallAction
+
+[
+    object,
+    uuid(03B9F4A0-DF6D-11D2-ACD1-00A0C9D7559D),  // IID_IFWXFirewallAction
+    pointer_default(unique)
+]
+interface IFWXFirewallAction : IUnknown
+{
+
+    HRESULT Cancel();
+}
+
+// IFWXGetXByY
+
+[
+    object,
+    uuid(56A7AD70-0C21-11D3-ACD7-00A0C9D7559D),  // IID_IFWXFirewallAction
+    pointer_default(unique)
+]
+interface IFWXGetXByY : IUnknown
+{
+
+    HRESULT Deny(
+        DWORD Reserved
+        );
+
+    HRESULT SetResult(
+        LPHOSTENT Hostent
+        );
+}
+
+
+// IFWXImpersonator
+
+[
+    object,
+    uuid(0AC63A8B-6C16-45A7-9B94-F0A345DA0D42),  // IID_IAuthenticator
+    pointer_default(unique)
+]
+interface IFWXImpersonator : IUnknown
+{
+
+    HRESULT Impersonate();
+
+    HRESULT RevertToSelf();
+}
+
+
+// IFWXSession
+
+[
+    object,
+    uuid(0CF075B2-A8F6-11d0-A7F1-0000F8750B21),  // IID_IFWXSession
+    pointer_default(unique)
+]
+interface IFWXSession : IUnknown
+{
+
+    HRESULT GetClientAddress(
+        [out]     LPSOCKADDR Address,
+        [in][out] LPDWORD   AddressLength
+        );
+
+
+    HRESULT GetClientMachineName(
+        [out, string]   LPSTR *pszMachineName
+        );
+
+
+    HRESULT GetAuthenticatedUser(
+        [out] IFWXAuthenticatedUser **ppIFWXAuthenticatedUser
+        );
+
+
+    HRESULT AllowFutureConnect(
+        [in] LPSOCKADDR Address,
+        [in] DWORD     AddressLength,
+        [in, unique] LPSOCKADDR ProxyExternalAddress,
+        [in] DWORD ProxyExternalAddressLength,
+        [in] INT   Protocol,
+        [in] DWORD dwFlags,
+        [in] REFGUID ProtocolGuid,
+        [in] IFWXSessionFilter *pSessionFilter,
+        [in] IUnknown *punkContext,
+        [in] IFWXConnection* pConnection,
+        [out] IFWXFirewallAction  **ppFirewallAction
+        );
+
+
+    HRESULT BindForClient(
+        [in, size_is(dwNumberOfAddresses), length_is(dwNumberOfAddresses)]
+        LPSOCKADDR     ClientAddresses[],
+        [in] DWORD         ClientAddressLength,
+        [in, out] LPSOCKADDR     ProxyAddress,
+        [in] DWORD              ProxyAddressLength,
+        [in] INT  Protocol,
+        [in] DWORD         dwNumberOfAddresses,
+        [in] DWORD         dwFlags,
+        [in] INT  Backlog,
+        [in] REFGUID ProtocolGuid,
+        [in] IFWXSessionFilter *pSessionFilter,
+        [in] IUnknown *punkContext,
+        [in] IFWXIpFilter *pIpFilter,
+        [out, size_is(dwNumberOfAddresses), length_is(dwNumberOfAddresses)] IFWXConnection * ConnectionArray[]
+        );
+
+
+    HRESULT EmulateClientBind(
+        [in] LPSOCKADDR     ClientAddress,
+        [in] DWORD         ClientAddressLength,
+        [in] LPSOCKADDR     ProxyAddress,
+        [in] DWORD              ProxyAddressLength,
+        [in] INT                Protocol,
+        [in] REFGUID ProtocolGuid,
+        [out] IFWXConnection **piConnection,
+        [in] BOOL fInternalAddressTranslation
+        );
+
+    HRESULT GetSessionFlags(
+        [out] LPDWORD   pOutputFlags
+        );
+
+
+    HRESULT RedirectConnections(
+        [in, size_is(dwNumberOfAddresses), length_is(dwNumberOfAddresses)]
+        [in] LPSOCKADDR     ConnectAddresses[],
+        [in] DWORD         ConnectAddressLength,
+        [in] DWORD         dwNumberOfAddresses,
+        [out,ref, size_is(*InternalAddressLength), length_is(*InternalAddressLength)]
+        LPSOCKADDR     InternalAddress,
+        [in, out] LPDWORD  InternalAddressLength,
+        [in, unique] LPSOCKADDR ProxyExternalAddress,
+        [in] DWORD ProxyExternalAddressLength,
+        [in] INT  Protocol,
+        [in] DWORD dwFlags,
+        [in] REFGUID ProtocolGuid,
+        [in] IFWXSessionFilter *pSessionFilter,
+        [in] IUnknown *punkContext,
+        [out, size_is(dwNumberOfAddresses), length_is(dwNumberOfAddresses)] IFWXFirewallAction * FirewallActionArray[]
+        );
+
+
+    HRESULT AttachFilter(
+        [in] REFCLSID  guidFilter
+        );
+
+
+    HRESULT SetDataFilterFactory(
+        [in]  FwxFirewallEventType   eProxyEvent,
+        [in] LPSOCKADDR Address,
+        [in] DWORD     AddressLength,
+        [in]  IClassFactory *pIClassFactory,
+        [in] FwxDataFilterPriorityClass PriorityClass,
+        [in, unique]  IUnknown *punkFilterContext,
+        [in] DWORD dwFlags,
+        [out] IFWXFirewallAction  **ppFirewallAction
+        );
+
+
+
+    HRESULT RetroactiveAllowBind(
+        [in] INT           Protocol,
+        [in] LPSOCKADDR    Address,
+        [in] DWORD         AddressLength,
+        [in] REFGUID       ProtocolGuid,
+        [in] DWORD         dwFlags,
+        [in] IFWXIpFilter *pIpFilter
+        );
+
+    HRESULT CreateNetworkSocket(
+        [in]  INT              Protocol,
+        [out] IFWXNetworkSocket **piSocket
+        );
+
+
+    HRESULT HostAccessCheck(
+        [in] REFGUID    FilterGuid,
+        [in] REFGUID    ProtocolGuid,
+        [in] LPHOSTENT  Hostent,
+        [in] USHORT     SrcPort,
+        [in] LPCSTR     pszPath,
+        [in] LPCSTR     pszMime,
+        [in] DWORD      dwFlags,
+        [in] IUnknown **ProcessedRulesData
+        );
+
+    HRESULT GetHostByName(
+        [in] const char *name,
+        [out, size_is(*buflen)] char *buf,
+        [in, out] int *buflen
+        );
+
+    HRESULT GetHostByAddr(
+        [in, size_is(len)] const char *addr,
+        [in] int len,
+        [in] int type,
+        [out, size_is(*buflen)] char *buf,
+        [in, out] int *buflen
+        );
+};
+
+
+
+
+// IFWXSession2
+
+[
+    object,
+    uuid(88705773-A238-4967-A39C-C170E1525E35),  // IID_IFWXSession2
+    pointer_default(unique)
+]
+interface IFWXSession2 : IFWXSession
+{
+    HRESULT RedirectConnectionsReservedPorts(
+        [in, size_is(dwNumberOfAddresses), length_is(dwNumberOfAddresses)] LPSOCKADDR ConnectAddresses[],
+        [in] DWORD         ConnectAddressLength,
+        [in] DWORD         dwNumberOfAddresses,
+        [in] IFWXReservedPorts * ReservedPorts,
+        [in, unique] LPSOCKADDR ProxyExternalAddress,
+        [in] DWORD ProxyExternalAddressLength,
+        [in] INT  Protocol,
+        [in] DWORD dwFlags,
+        [in] REFGUID ProtocolGuid,
+        [in] IFWXSessionFilter *pSessionFilter,
+        [in] IUnknown *punkContext,
+        [out, size_is(dwNumberOfAddresses), length_is(dwNumberOfAddresses)] IFWXFirewallAction * FirewallActionArray[]
+        );
+
+
+    HRESULT BindForClientOnReservedPorts(
+        [in, size_is(dwNumberOfAddresses), length_is(dwNumberOfAddresses)] LPSOCKADDR ClientAddresses[],
+        [in] DWORD         ClientAddressLength,
+        [in] IFWXReservedPorts * ReservedPorts,
+        [in] INT  Protocol,
+        [in] DWORD         dwNumberOfAddresses,
+        [in] DWORD         dwFlags,
+        [in] INT  Backlog,
+        [in] REFGUID ProtocolGuid,
+        [in] IFWXSessionFilter *pSessionFilter,
+        [in] IUnknown *punkContext,
+        [in] IFWXIpFilter *pIpFilter,
+        [out, size_is(dwNumberOfAddresses), length_is(dwNumberOfAddresses)] IFWXConnection * ConnectionArray[]
+        );
+}
+
+
+// IFWXConnection
+
+[
+    object,
+    uuid(0CF075B3-A8F6-11d0-A7F1-0000F8750B21),  // IID_IFWXConnection
+    pointer_default(unique)
+]
+interface IFWXConnection : IUnknown {
+
+    HRESULT AttachDataFilter(
+        [in] IFWXDataFilter *piDataFilter,
+        [in] FwxDataFilterPriorityClass PriorityClass,
+        [in, unique]  IUnknown *punkFilterContext
+        );
+
+
+    HRESULT EmulateConnection(
+        [in]  IFWXDataFilter *piDataFilter,
+        [in]  LPSOCKADDR   RemoteAddress,
+        [in]  DWORD       RemoteAddressLength,
+        [in]  LPSOCKADDR   LocalAddress,
+        [in]  DWORD       LocalAddressLength,
+        [out] IFWXConnection **ppNewIFWXConnection
+        );
+
+
+    HRESULT SetSocketName(
+        LPSOCKADDR Address,
+        DWORD     AddressLength
+        );
+
+
+    HRESULT GetExternalSocketName(
+        [out]  LPSOCKADDR Address,
+        [in, out]  LPINT  AddressLength
+        );
+
+    HRESULT Kill();
+
+
+    HRESULT SetClientAddress(
+        [in] LPSOCKADDR     ClientAddress,
+        [in] DWORD         ClientAddressLength
+        );
+
+
+    HRESULT AttachDataFilterWithDestination(
+        [in] IFWXDataFilter *piDataFilter,
+        [in] FwxDataFilterPriorityClass PriorityClass,
+        [in, unique]  IUnknown *punkFilterContext,
+        [in, unique] LPSOCKADDR  ExternalAddress,
+        [in] INT        ExternalAddressLength
+        );
+
+
+    HRESULT EmulateForConnect(
+        [in] IFWXDataFilter *piDataFilter,
+        [in, unique]  IUnknown *punkFilterContext
+        );
+
+    HRESULT EmulateForBind();
+
+    HRESULT Deny(
+        DWORD Reserved
+        );
+
+
+    HRESULT SetBufferSize(
+        DWORD BufferSize
+        );
+
+    HRESULT GetExternalPeerName(
+        [out]  LPSOCKADDR Address,
+        [in, out]  LPINT  AddressLength
+        );
+
+    HRESULT GetSession(
+        [out] IFWXSession **ppSession
+        );
+
+    HRESULT SetIpFilter(
+        [in] IFWXIpFilter * pIpFilter
+        );
+
+    HRESULT GetIpFilter(
+        [out] IFWXIpFilter ** ppIpFilter
+        );
+
+    HRESULT IncrementBytesSentCounter(
+        DWORD dwBytesSent
+        );
+
+    HRESULT GetConnectionFlags(
+        [out] LPDWORD   pOutputFlags
+        );
+}
+
+
+
+// IFWXUdpDestination
+
+[
+    object,
+    uuid(4752e12e-5715-47bb-b884-73a45669707b),  // IID_IFWXUdpDestination
+    pointer_default(unique)
+]
+interface IFWXUdpDestination : IUnknown {
+
+
+    HRESULT Deny(
+        DWORD Reserved
+        );
+}
+
+// IFWXIOBuffer
+
+[
+    object,
+    uuid(0CF075BB-A8F6-11d0-A7F1-0000F8750B21),  // IID_IIOBUffer
+    pointer_default(unique)
+]
+interface IFWXIOBuffer : IUnknown {
+
+    [local]
+    HRESULT GetBufferAndSize(
+        [out] BYTE **ppBuffer,
+        [out] DWORD *pdwSize
+        );
+
+    [call_as(GetBufferAndSize)] HRESULT RemoteGetBufferAndSize();
+
+
+    HRESULT SetDataSize(
+        [in]  DWORD dwDataSize
+        );
+
+
+    [local]
+    HRESULT ReadAt(
+        [in] ULONG ulOffset,
+        [out, size_is(cb), length_is(*pcbRead)]
+        void *pv,
+        [in] ULONG cb,
+        [out] ULONG *pcbRead
+        );
+
+    [call_as(ReadAt)] HRESULT RemoteReadAt(
+        [in] ULONG ulOffset,
+        [out, size_is(cb), length_is(*pcbRead)]
+        byte *pv,
+        [in] ULONG cb,
+        [out] ULONG *pcbRead
+        );
+
+
+    HRESULT SendToBuffer(
+        [in] IFWXIOBuffer  *pDestinationBuffer,
+        [in] ULONG ulOffset,
+        [in] ULONG cb,
+        [out] ULONG *pcbCopied
+        );
+
+
+    [local]
+    HRESULT Append(
+        [in, size_is(cb)]
+        void const *pv,
+        [in] ULONG cb,
+        [out] ULONG *pcbWritten
+        );
+
+    [call_as(Append)] HRESULT RemoteAppend(
+        [in, size_is(cb)] byte const *pv,
+        [in] ULONG cb,
+        [out] ULONG *pcbWritten
+        );
+
+
+
+    HRESULT GetBufferSizes(
+        [out]  LPDWORD pdwAlocatedSize,
+        [out]  LPDWORD pdwActualSize
+        );
+}
+
+
+// IFWXIOCompletion
+
+[
+    object,
+    uuid(0CF075B4-A8F6-11d0-A7F1-0000F8750B21),  // IID_IFWXIOCompletion
+    pointer_default(unique)
+]
+interface IFWXIOCompletion : IUnknown {
+
+    HRESULT CompleteAsyncIO(
+          [in] BOOL fSuccess,
+          [in] DWORD Win32ErrorCode,
+          [in] IFWXIOBuffer *pIOBuffer,
+          [in] UserContextType UserData,
+          [in, unique] LPSOCKADDR  ExternalAddress,
+          [in] INT ExternalAddressLength
+    );
+}
+
+// IFWXExternalIOCompletion
+
+[
+    object,
+    uuid(37AFF878-6BD7-11d1-B035-0000F87750CB),  // IID_IFWXExternalIOCompletion
+    pointer_default(unique)
+]
+interface IFWXExternalIOCompletion : IUnknown {
+
+    HRESULT CompleteAsyncIO(
+          [in] BOOL fSuccess,
+          [in] DWORD NumberOfBytesTransfered,
+          [in] DWORD Win32ErrorCode,
+          [in] IFWXOverlapped *pOverlapped,
+          [in] UserContextType UserData
+    );
+}
+
+
+// IFWXTaskCompletion
+
+[
+    object,
+    uuid(95da13d9-80ed-4a66-ae72-420928f1d183),  // IID_IFWXTaskCompletion
+    pointer_default(unique)
+]
+interface IFWXTaskCompletion : IUnknown {
+
+    HRESULT CompleteTask(
+          [in] UserContextType UserData
+    );
+}
+
+
+
+// IFWXAcceptCompletion
+
+[
+    object,
+    uuid(58C4D721-3E61-11d1-B02D-0000F87750CB),  // IID_IFWXAcceptCompletion
+    pointer_default(unique)
+]
+interface IFWXAcceptCompletion : IUnknown {
+
+    HRESULT CompleteAsyncAccept(
+          [in] BOOL       fSuccess,
+          [in] DWORD      Win32ErrorCode,
+          [in] IFWXNetworkSocket *pListeningSocket,
+          [in] IFWXNetworkSocket *pAcceptSocket,
+          [in] LPSOCKADDR RemoteAddress,
+          [in] DWORD     RemoteAddressLength,
+          [in] LPSOCKADDR LocalAddress,
+          [in] DWORD     LocalAddressLength,
+          [in] UserContextType    UserData
+          );
+}
+
+
+// IFWXSocket
+
+[
+    object,
+    uuid(0CF075B5-A8F6-11d0-A7F1-0000F8750B21),  // IID_IFWXSocket
+    pointer_default(unique)
+]
+interface IFWXSocket : IUnknown {
+
+
+    HRESULT Send(
+          [in]     IFWXIOBuffer *pIOBuffer,
+          [in]     IFWXIOCompletion *pIFWXIOCompletion,
+          [in]     UserContextType        UserData
+    );
+
+
+    HRESULT SendTo(
+          [in]     IFWXIOBuffer *pIOBuffer,
+          [in]     SOCKADDR *Address,
+          [in]     INT            AddressLength,
+          [in]     IFWXIOCompletion *pIFWXIOCompletion,
+          [in]     UserContextType        UserData
+    );
+
+
+
+    HRESULT Recv(
+          [in]     IFWXIOBuffer *pIOBuffer,
+          [in]     IFWXIOCompletion *pIFWXIOCompletion,
+          [in]     UserContextType        UserData
+
+    );
+
+
+    HRESULT Shutdown(
+        [in] BOOLEAN fAbortive
+    );
+
+
+    HRESULT Close(
+        [in] BOOLEAN fAbortive
+    );
+
+    //*** Private interface, for internal use only ***
+    // Return the number of bytes written to this socket interface
+    //
+    HRESULT _GetWriteCount(
+        [out] LONGLONG *pll
+    );
+
+    //*** Private interface, for internal use only ***
+    // Return S_OK if data is available, S_FALSE if not.
+    //
+    HRESULT _IsDataAvailable();
+
+};
+
+
+
+//
+// For Internal use
+//
+typedef enum _tagFwxPFOptions {
+    fwx_ApplyInbound,
+    fwx_ApplyOutbound
+} FwxPFOptions;
+
+// IFWXNetworkSocket
+
+[
+    object,
+    uuid(0CF075B6-A8F6-11d0-A7F1-0000F8750B21),  // IID_IFWXNetworkSocket
+    pointer_default(unique)
+]
+interface IFWXNetworkSocket : IFWXSocket {
+
+    HRESULT Connect(
+        [in]  LPSOCKADDR Address,
+        [in]  DWORD     AddressLength
+        );
+
+
+    HRESULT Bind(
+        [in]  LPSOCKADDR Address,
+        [in]  INT       AddressLength,
+        [in]  IFWXIpFilter *pIpFilter
+        );
+
+
+    HRESULT GetSockName(
+        [out]  LPSOCKADDR Address,
+        [out]  LPINT     AddressLength
+        );
+
+    HRESULT GetPeerName(
+        [out]  LPSOCKADDR Address,
+        [out]  LPINT     AddressLength
+        );
+
+
+    HRESULT Listen(
+        [in]  INT       Backlog
+        );
+
+
+    HRESULT SetSockOpt(
+        [in] int level,
+        [in] int optname,
+        [in] CHAR * optval,
+        [in] int optlen
+        );
+
+
+    HRESULT GetSockOpt(
+        [in] int level,
+        [in] int optname,
+        [out, size_is(*optlen), length_is(*optlen)]
+        CHAR * optval,
+        [in, out] int *optlen
+        );
+
+
+    HRESULT Accept(
+        [in]     IFWXAcceptCompletion *pIFWXAcceptCompletion,
+        [in]     UserContextType           UserData
+
+        );
+
+    //
+    // The function is undocumented and should not be used.
+    //
+    HRESULT __SetPacketFilterOptions(
+        [in] BOOL  fForInternalUse,
+        [in] DWORD dwForInternalUse
+        );
+
+    HRESULT SetIpFilter(
+        [in] IFWXIpFilter * pIpFilter
+        );
+
+    HRESULT GetIpFilter(
+        [out] IFWXIpFilter ** ppIpFilter
+        );
+}
+
+// IFWXNetworkSocketInspection
+
+[
+    object,
+    uuid(060725DA-9605-417C-8459-D18C2AB441A2),  // IID_IFWXNetworkSocketInspection
+    pointer_default(unique),
+    hidden
+]
+interface IFWXNetworkSocketInspection : IUnknown {
+
+    HRESULT AssociateProtocol(
+        [in]   GUID ProtocolGuid
+        );
+
+    HRESULT SetIpsInspectTraffic(
+        );
+}
+
+
+// IFWXFilterAdmin
+
+[
+    object,
+    uuid(52b0bf15-962f-4937-8c37-e4c640c27e8f),  // IID_IFWXFilterAdmin
+    pointer_default(unique)
+]
+interface IFWXFilterAdmin : IUnknown {
+
+    HRESULT InstallFilter(
+        [in]   REFCLSID guidFilter,
+        [in]   LPCWSTR  Name,
+        [in]   LPCWSTR  Description,
+        [in]   LPCWSTR  Vendor,
+        [in]   LPCWSTR  VersionString,
+        [in]   LPCWSTR  Reserved,
+        [in, size_is(ProtocolsNumber)]   GUID AssociatedProtocols[],
+        [in]   UINT ProtocolsNumber
+        );
+
+
+    HRESULT UninstallFilter(
+        [in] REFCLSID guidFilter
+        );
+
+
+    HRESULT RegisterProtocol(
+        [in] REFGUID    guidProtocol,
+        [in] LPCWSTR    szProtocolName,
+        [in] LPCWSTR    szDescription,
+        [in] long       ProtocolCatagory,
+        [in] LPCWSTR    Reserved
+        );
+
+
+    HRESULT UnregisterProtocol(
+        [in] REFGUID    guidProtocol
+        );
+
+    HRESULT GetParameterSets(
+        [in]   REFCLSID   guidFilter,
+        [out]  IFPCVendorParametersSets **ppParameterSets
+        );
+
+
+    HRESULT GetFilterParameterSet(
+        [in]   REFCLSID   guidFilter,
+        [out]  IFPCVendorParametersSet **ppParameterSet
+        );
+
+
+    HRESULT GetProtocol(
+        [in]  REFGUID    guidProtocol,
+        [out] IFPCProtocolDefinition  **ppProtocol
+        );
+
+
+    HRESULT GetFilter(
+        [in]  REFCLSID   guidFilter,
+        [out] IFPCApplicationFilter  **ppPlugin
+        );
+}
+
+
+// IFWXOverlapped
+
+[
+    object,
+    uuid(0CF075B8-A8F6-11d0-A7F1-0000F8750B21),  // IID_IFWXOverlapped
+    pointer_default(unique)
+]
+interface IFWXOverlapped : IUnknown {
+
+    HRESULT GetOverlapped(
+        [out] LPOVERLAPPED  *ppov
+        );
+
+
+    HRESULT SetNotificationInterface(
+        [in] IFWXExternalIOCompletion *piExternalIOCompletion,
+        [in] UserContextType UserData
+        );
+}
+
+
+// IFWXIpFilter
+
+[
+    object,
+    uuid(CE53B05B-F152-4DDC-B6C7-486D7556633F),  // IID_IIpFilter
+    pointer_default(unique)
+]
+interface IFWXIpFilter : IUnknown {
+
+    HRESULT IncludeRange(
+        [in] IN_ADDR IP_From,
+        [in] IN_ADDR IP_To
+        );
+
+    HRESULT ExcludeRange(
+        [in] IN_ADDR IP_From,
+        [in] IN_ADDR IP_To
+        );
+
+    HRESULT IncludeFilter(
+        [in] IFWXIpFilter * pIpFilter
+        );
+
+    HRESULT ExcludeFilter(
+        [in] IFWXIpFilter * pIpFilter
+        );
+
+    HRESULT IsIncluded(
+        [in] IN_ADDR IP
+        );
+
+    HRESULT Compare(
+        [in] IFWXIpFilter * pIpFilter
+        );
+
+    HRESULT Clone(
+        [out] IFWXIpFilter ** ppIpFilter
+        );
+}
+
+
+// IFWXFirewall
+
+[
+    object,
+    uuid(0CF075B9-A8F6-11d0-A7F1-0000F8750B21),  // IID_IFWXFirewall
+    pointer_default(unique)
+]
+interface IFWXFirewall : IUnknown {
+
+    [local]
+    HRESULT HookToCompletionPort(
+        [in] HANDLE_PTR h
+    );
+
+    HRESULT CreateOverlapped(
+        [out] IFWXOverlapped **ppOverlapped
+        );
+
+
+    HRESULT CreateNetworkSocket(
+        [in]  INT              Protocol,
+        [out] IFWXNetworkSocket **piSocket
+        );
+
+
+    HRESULT CreateConstBuffer(
+        [in] BYTE *pBuffer,
+        [in] DWORD dwBufferLength,
+        [out] IFWXIOBuffer **pIOBuffer
+        );
+
+
+    HRESULT CreateBuffer(
+        [in] DWORD dwBufferLength,
+        [out] IFWXIOBuffer **pIOBuffer
+        );
+
+
+    HRESULT CreateWindowBuffer(
+        [in] IFWXIOBuffer *pIOBufferOriginal,
+        [in] DWORD     dwOffset,
+        [in] DWORD     dwLength,
+        [out] IFWXIOBuffer **pIOBuffer
+        );
+
+    HRESULT CreateIpFilter(
+        [out] IFWXIpFilter ** ppIpFilter
+        );
+
+
+    HRESULT StartHeavyBlockingOperation();
+
+    HRESULT EndHeavyBlockingOperation();
+
+
+    HRESULT GetClientSession(
+        [in] LPSOCKADDR Address,
+        [in] DWORD     AddressLength,
+        [out]  IFWXSession ** ppiClientSession
+        );
+
+
+    HRESULT CreatePrivateSession(
+        [in] LPSOCKADDR ClientAddress,
+        [in] DWORD     ClientAddressLength,
+        [in] LPSOCKADDR ProxyInternalAddress,
+        [in] DWORD     ProxyInternalAddressLength,
+        [in] IFWXAuthenticatedUser *AuthenticatedUser,
+        [out]  IFWXSession ** ppPrivateSession
+        );
+
+    HRESULT GetHostByName(
+        [in] const char *name,
+        [out, size_is(*buflen)] char *buf,
+        [in, out] int *buflen
+        );
+
+    HRESULT GetHostByAddr(
+        [in, size_is(len)] const char *addr,
+        [in] int len,
+        [in] int type,
+        [out, size_is(*buflen)] char *buf,
+        [in, out] int *buflen
+        );
+};
+
+//
+// define NetConfigDetector notifications
+//
+typedef enum _tagFwxNcdEventType
+{
+    fwx_ncd_AddNetworkElement,
+    fwx_ncd_RemoveNetworkElement,
+    fwx_ncd_AddNetworkAdapter,
+    fwx_ncd_RemoveNetworkAdapter,
+    fwx_ncd_AddNetworkAddress,
+    fwx_ncd_RemoveNetworkAddress,
+    fwx_ncd_AddNetworkSet,
+    fwx_ncd_RemoveNetworkSet,
+    fwx_ncd_AddNetworkElementToSet,
+    fwx_ncd_RemoveNetworkElementFromSet,
+    fwx_ncd_ChangeIpRange,
+    fwx_ncd_ChangeAdapterRoute,
+    fwx_ncd_Startup,
+    fwx_ncd_Shutdown,
+    fwx_ncd_SyncConfig
+} FwxNcdEventType;
+
+typedef struct _tagFwxIpRangeToNetworkElement
+{
+    struct in6_addr IpRangeUpperBound;
+    IFWXNetworkElement* pNetworkElement;
+}FwxIpRangeToNetworkElement;
+
+typedef struct _tagFwxIpRangesToNetworkElements
+{
+    [size_is(IpRangesNumber)] FwxIpRangeToNetworkElement * IpRanges;
+    unsigned int IpRangesNumber;
+}FwxIpRangesToNetworkElements;
+
+//
+// define IpRangesToNetworkElements change reason
+//
+typedef enum _tagFwxNcdRangesChangeReason
+{
+    fwx_ncd_ServiceStartup,
+    fwx_ncd_StorageChanged,
+    fwx_ncd_VpnConnection,
+    fwx_ncd_VpnDisconnection,
+    fwx_ncd_ServiceShutdown
+} FwxNcdRangesChangeReason;
+
+typedef struct _tagFwxIpRangesToNetworkElementsNotification
+{
+    FwxIpRangesToNetworkElements Table;
+    FwxNcdRangesChangeReason eReason;
+}FwxIpRangesToNetworkElementsNotification;
+
+
+typedef struct _tagFwxNetElementMembershipInNetworkSet
+{
+    IFWXNetworkElement*    pNetElement;
+    IFWXNetworkSet*        pNetSet;
+}FwxNetElementMembershipInNetworkSet;
+
+//
+// A union of all types of parameters for the above events
+//
+[switch_type(FwxNcdEventType)] typedef union _tagFwxNcdEventParameters {
+    [case (fwx_ncd_Startup)] unsigned int uiContextSlot;
+    [case (fwx_ncd_AddNetworkElement, fwx_ncd_RemoveNetworkElement)] IFWXNetworkElement *pNetworkElement;
+    [case (fwx_ncd_AddNetworkAdapter, fwx_ncd_RemoveNetworkAdapter, fwx_ncd_ChangeAdapterRoute)] IFWXNetworkAdapter *pNetworkAdapter;
+    [case (fwx_ncd_AddNetworkAddress, fwx_ncd_RemoveNetworkAddress)]  IFWXNetworkAddress *pNetworkAddress;
+    [case (fwx_ncd_AddNetworkSet, fwx_ncd_RemoveNetworkSet)] IFWXNetworkSet* pNetworkSet;
+    [case (fwx_ncd_AddNetworkElementToSet, fwx_ncd_RemoveNetworkElementFromSet)] FwxNetElementMembershipInNetworkSet NetElementSetMembership;
+    [case (fwx_ncd_ChangeIpRange)] FwxIpRangesToNetworkElementsNotification IpRangesToNetworkElements;
+    [case (fwx_ncd_SyncConfig)] IFWXNetConfigDetectionSnapshot* pNetConfigDetectionSnapshot;
+}FwxNcdEventParameters;
+
+//
+// describes a pnp network configuration event
+//
+typedef struct _tagFwxNcdEvent {
+    FwxNcdEventType                                 EventType;
+    [switch_is(EventType)] FwxNcdEventParameters    Parameters;
+}FwxNcdEvent;
+
+
+[
+    object,
+    uuid(3F426CDB-D64E-4d13-8B3A-451D8CA54492),  // IID_IFWXNetConfigDetectionNotification
+    pointer_default(unique)
+]
+interface IFWXNetConfigDetectionNotification : IUnknown
+{
+    HRESULT NotifyNetworkChange(
+        [in,ref] const FwxNcdEvent *pEvent
+        );
+};
+
+// IFWXFirewall2
+
+[
+    object,
+    uuid(F3DA55EA-A8A9-47B0-A829-A0FD9CDA66E6),  // IID_IFWXFirewall2
+    pointer_default(unique)
+]
+interface IFWXFirewall2 : IFWXFirewall {
+    HRESULT UpdateServiceStatus(
+        [in]  DWORD dwWaitHint
+        );
+
+    HRESULT PostTaskCompletion(
+        [in]  IFWXTaskCompletion *pIFWXTaskCompletion,
+        [in]  UserContextType     UserData
+        );
+
+    HRESULT CreateRadiusAuthenticator(
+        [out] IFWXRadiusAuthenticator ** ppIFWXRadiusAuthenticator
+        );
+
+    HRESULT GetNetConfigDetector(
+        [out] IFWXNetConfigDetector** ppNetConfigDetector
+        );
+
+    HRESULT GetLowResourceRecoverer(
+        [out] IFWXLowResourceRecoverer** ppIFWXRecoverer
+        );
+
+    HRESULT CreateSSLNetworkSocket(
+        [in] BOOL fAskForClientCert,
+        [in, unique] LPSTR pszHostName,
+        [in] DWORD dwHostNameLen,
+        [in, unique] LONG* pCreds,
+        [in, unique] LONG* pDefaultCreds,
+        [in] FwxSslSocketSide eSide,
+        [in] REFGUID ProtocolGuid,
+        [in] DWORD dwDefaultSendTimeout,
+        [in] DWORD dwDefaultRecvTimeout,
+        [in] BOOL fAllowHTTPSTunnelingMode,
+        [in] IFWXSocket *pExistingSocket,
+        [out] IFWXNetworkSocket **ppiSSLSocket
+        );
+
+};
+
+// Contains values of possible network relationships between a source address and a destination address.
+typedef enum _tagFwxNetworkRelation {
+	fwx_nrt_NoRelation,
+	fwx_nrt_SameNetwork,
+	fwx_nrt_NAT,
+	fwx_nrt_ReverseNAT,
+	fwx_nrt_Route
+} FwxNetworkRelation;
+
+
+// IFWXReservedPorts
+
+[
+    object,
+    uuid(252FE376-A405-44f1-988F-B49B4A5A3650),  // IFWXReservedPorts
+    pointer_default(unique)
+]
+interface IFWXReservedPorts : IUnknown {
+
+	HRESULT GetFirstPort(
+		[out] USHORT* usPort
+		);
+
+	HRESULT GetCount(
+		[out] USHORT* usCount
+		);
+
+	HRESULT GetTransportProtocol(
+		[out] INT* piTransportProtocol
+		);
+};
+
+// IFWXFirewall3
+
+[
+    object,
+    uuid(C473A3F1-2F91-4c55-B6A6-8DC1555934C2),  // IID_IFWXFirewall3
+    pointer_default(unique)
+]
+interface IFWXFirewall3 : IFWXFirewall2 {
+
+	HRESULT GetNetworkRelation(
+		[in]  LPSOCKADDR pFromSocket,
+		[in]  DWORD      dwFromSocketLength,
+		[in]  LPSOCKADDR pToSocket,
+		[in]  DWORD      dwToSocketLength,
+		[out] FwxNetworkRelation* peRelation
+		);
+
+	HRESULT ReservePorts(
+		[in]  INT 		 TransportProtocol,
+		[in]  const LPSOCKADDR pSocket,
+		[in]  DWORD      dwSocketLength,
+		[in]  USHORT 	 usCount,
+		[out] IFWXReservedPorts** ppReservedPort
+		);
+
+};
+
+// IFWXDataFilter
+
+[
+    object,
+    uuid(0CF075BA-A8F6-11d0-A7F1-0000F8750B21),  // IID_IFWXDataFilter
+    pointer_default(unique)
+]
+interface IFWXDataFilter : IUnknown {
+
+    HRESULT SetSockets(
+        [in]  IFWXSocket *piInternalSocket,
+        [in]  IFWXSocket *pIExternalSocket,
+        [in]  IFWXConnection *piConnection,
+        [in, unique]  IUnknown *punkFilterContext
+        );
+
+
+    HRESULT Detach();
+};
+
+
+
+// IFWXSlowDataFilter
+
+[
+    object,
+    uuid(1B2E64E0-FBD4-11D2-ACD4-00A0C9D7559D),  // IID_ISlowDataFilter
+    pointer_default(unique)
+]
+interface IFWXSlowDataFilter : IUnknown {
+
+    HRESULT OkToTerminate();
+}
+
+[
+    uuid(291C2C7A-1731-11d2-ACB6-00A0C9D7559D),
+    version(1.0),
+    helpstring("Microsoft Proxy Plugin Type Library 1.0")
+]
+library WspPlugin
+{
+    importlib("stdole32.tlb");
+    importlib("stdole2.tlb");
+
+    interface IFWXSession;
+    interface IFWXSessionFilter;
+    interface IFWXSocket;
+    interface IFWXConnection;
+    interface IFWXDataFilter;
+    interface IFWXNetworkSocket;
+    interface IFWXNetworkSocketInspection;
+    interface IFWXFirewall;
+    interface IFWXFilter;
+    interface IFWXOverlapped;
+    interface IFWXIOBuffer;
+    interface IFWXIOCompletion;
+    interface IFWXExternalIOCompletion;
+    interface IFWXAcceptCompletion;
+
+
+    [
+        uuid(EC7DD7CF-D037-420A-AFEC-E5BCDD68DC6D)
+    ]
+    coclass FWXFilterAdmin
+    {
+        [default] interface IFWXFilterAdmin;
+    };
+}
+
+
+// Namespace for Windows users
+cpp_quote("#define AUTHENTICATED_AD_USER_NAMESPACE         \"AD\"")
+cpp_quote("#define AUTHENTICATED_AD_USER_NAMESPACE_W       L\"AD\"")
+// Namespace for RADIUS users
+cpp_quote("#define AUTHENTICATED_RADIUS_USER_NAMESPACE     \"RADIUS\"")
+cpp_quote("#define AUTHENTICATED_RADIUS_USER_NAMESPACE_W   L\"RADIUS\"")
+
+// IFWXAuthenticatedUser
+
+[
+    object,
+    uuid(e1c9b61e-7daa-4aef-9607-5e25711f6e23),  // IID_IFWXAuthenticatedUser
+    pointer_default(unique)
+]
+interface IFWXAuthenticatedUser : IFWXImpersonator {
+
+    [propget, id(1), helpstring("property Username")] HRESULT Username(
+        [out, retval] BSTR * pVal
+        );
+
+    [propget, id(2), helpstring("property Namespace")] HRESULT Namespace(
+        [out, retval] BSTR *pVal
+        );
+
+    [propget, id(3), helpstring("property UserGroups")] HRESULT UserGroups(
+        [out, retval] BSTR *pVal
+        );
+};
+
+// IFWXAuthenticatedWindowsUser
+
+[
+    object,
+    uuid(112B2FFF-A843-4214-80D8-1FB7C4D02E7D),  // IID_IFWXAuthenticatedWindowsUser
+    pointer_default(unique)
+]
+interface IFWXAuthenticatedWindowsUser : IFWXAuthenticatedUser {
+
+    [propget, id(1), helpstring("property Token")] HRESULT Token(
+        [out, retval] DWORD_PTR *phToken
+        );
+
+    [propget, id(2), helpstring("property SID")] HRESULT SID(
+        [out, retval] DWORD **ppSID
+        );
+};
+
+// IFWXAuthenticationCompletion
+
+[
+    object,
+    uuid(09573496-1877-4c2e-aa9d-8448d39256e5),  // IID_IFWXAuthenticationCompletion
+    pointer_default(unique)
+]
+interface IFWXAuthenticationCompletion : IUnknown {
+
+    HRESULT CompleteAsyncAuthentication(
+        [in]    BOOL             fSuccess,
+        [in]    DWORD            Win32ErrorCode,
+        [in]    IFWXAuthenticatedUser*   pIFWXAuthenticatedUser,
+        [in]    UserContextType      UserData
+        );
+};
+
+
+ // IFWXRadiusAuthenticator
+
+[
+    object,
+    uuid(3cf0a893-7b44-477d-9fa1-70576840962b),  // IID_IFWXRadiusAuthenticator
+    pointer_default(unique)
+]
+interface IFWXRadiusAuthenticator : IUnknown {
+
+   HRESULT AuthenticateRadiusUser(
+        [in]  BSTR                bstrUserName,
+        [in]  BSTR                bstrUserPassword,
+        [in]  IFWXAuthenticationCompletion    *pIFWXAuthenticationCompletion,
+        [in]  UserContextType             UserData
+        );
+};
+
+[
+    object,
+    uuid(1744BFAD-9969-4CAE-99DE-537E7DFFDE0B),  // IID_IFWXNetworkElement
+    pointer_default(unique)
+]
+interface IFWXNetworkElement : IUnknown {
+    HRESULT SetContext(
+        [in] unsigned int uiContextSlot,
+        [in] IUnknown* punkContext
+        );
+
+    HRESULT GetContext(
+        [in] unsigned int uiContextSlot,
+        [out] IUnknown** ppunkContext
+        );
+
+    HRESULT GetGUID(
+        [out] GUID* pGuid
+        );
+
+    HRESULT GetName(
+        [out] BSTR* pBstrName
+        );
+
+    HRESULT GetType(
+        [out] FpcNetworkTypes* pFpcNetworkType
+        );
+
+    HRESULT IsLocalAddress(
+        [in] LPSOCKADDR Address,
+        [in] DWORD AddressLength
+        );
+
+    HRESULT GetConnectingNetworkGUID(
+        [out] GUID* pGuid
+        );
+};
+
+[
+    object,
+    uuid(1A9B845B-F653-4897-8D27-06AB8D7E286B),  // IID_IFWXNetworkElements
+    pointer_default(unique)
+]
+interface IFWXNetworkElements : IUnknown {
+    HRESULT GetCount(
+        [out] unsigned int* puiCount
+        );
+
+    HRESULT GetItem(
+        [in]  unsigned int uiItemIndex,
+        [out] IFWXNetworkElement** ppNetworkElement
+        );
+
+};
+
+[
+    object,
+    uuid(CF11DCD1-3F4C-42e5-BCCE-105DF45D284D),  // IID_IFWXNetworkAdapter
+    pointer_default(unique)
+]
+interface IFWXNetworkAdapter : IUnknown
+{
+    HRESULT SetContext(
+        [in] unsigned int uiContextSlot,
+        [in] IUnknown* punkContext
+        );
+
+    HRESULT GetContext(
+        [in] unsigned int uiContextSlot,
+        [out] IUnknown** ppunkContext
+        );
+
+    HRESULT GetAdapterIndex(
+        [out] DWORD* pdwIndex
+        );
+
+    HRESULT GetRouteTable(
+        [out] IFWXIpFilter ** ppIpRange
+        );
+};
+
+
+[
+    object,
+    uuid(A1E9686F-2C6D-4810-9A70-14E49E5D6F0A),  // IID_IFWXNetworkAdapter2
+    pointer_default(unique)
+]
+interface IFWXNetworkAdapter2 : IFWXNetworkAdapter
+{
+    HRESULT IsDefaultGateway(
+        [out] BOOL* pfDefaultGateway
+        );
+};
+
+
+[
+    object,
+    uuid(CCB41DD9-942E-4885-B2D3-31346F33C50D),  // IID_IFWXNetworkAdapters
+    pointer_default(unique)
+]
+interface IFWXNetworkAdapters : IUnknown {
+    HRESULT GetCount(
+        [out] unsigned int* puiCount
+        );
+
+    HRESULT GetItem(
+        [in]  unsigned int uiItemIndex,
+        [out] IFWXNetworkAdapter** ppNetworkAdapter
+        );
+
+};
+
+
+[
+    object,
+    uuid(A5C3281B-F4E1-4ff2-B7AF-F2E51BB66BBC),  // IID_IFWXNetworkAddress
+    pointer_default(unique)
+]
+interface IFWXNetworkAddress : IUnknown
+{
+    HRESULT SetContext(
+        [in] unsigned int uiContextSlot,
+        [in] IUnknown* punkContext
+        );
+
+    HRESULT GetContext(
+        [in] unsigned int uiContextSlot,
+        [out] IUnknown** ppunkContext
+        );
+
+    HRESULT GetAddress(
+        [out] LPSOCKADDR Address,
+        [in, out] DWORD* AddressLength
+        );
+
+    HRESULT GetMask(
+        [out] LPSOCKADDR Mask,
+        [in, out] DWORD* MaskLength
+        );
+
+    HRESULT GetNetworkAdapter(
+        [out] IFWXNetworkAdapter** ppNetworkAdapter
+        );
+
+    HRESULT GetNetworkElement(
+        [out] IFWXNetworkElement** ppNetworkElement
+        );
+
+    HRESULT IsPrimaryIpAddress(
+        [out] BOOL* pfPrimary
+        );
+};
+
+[
+    object,
+    uuid(FEA0487F-2C94-46BC-B238-81A3284D0DFD),  // IID_IFWXNetworkAddresses
+    pointer_default(unique)
+]
+interface IFWXNetworkAddresses : IUnknown {
+    HRESULT GetCount(
+        [out] unsigned int* puiCount
+        );
+
+    HRESULT GetItem(
+        [in]  unsigned int uiItemIndex,
+        [out] IFWXNetworkAddress** ppNetworkAddress
+        );
+
+};
+
+
+[
+    object,
+    uuid(392cafbc-173f-41ac-89c4-a93dc9c291f0),  // IID_IFWXNetworkSet
+    pointer_default(unique)
+]
+interface IFWXNetworkSet : IUnknown
+{
+    HRESULT SetContext(
+        [in] unsigned int uiContextSlot,
+        [in] IUnknown* punkContext
+        );
+
+    HRESULT GetContext(
+        [in] unsigned int uiContextSlot,
+        [out] IUnknown** ppunkContext
+        );
+
+    HRESULT GetGUID(
+        [out] GUID* pGuid
+        );
+
+    HRESULT GetNetworkElements(
+        [out] IFWXNetworkElements** ppNetworkElements
+        );
+};
+
+[
+    object,
+    uuid(1FDC0D89-9C9B-4045-B0B1-6A535FAC25C5),  // IID_IFWXNetworkSets
+    pointer_default(unique)
+]
+interface IFWXNetworkSets : IUnknown {
+    HRESULT GetCount(
+        [out] unsigned int* puiCount
+        );
+
+    HRESULT GetItem(
+        [in]  unsigned int uiItemIndex,
+        [out] IFWXNetworkSet** ppNetworkSet
+        );
+
+};
+
+
+[
+    object,
+    uuid(99890BF5-6973-41C7-BBB9-8A366F734969),  // IID_IFWXNetConfigDetectionSnapshot
+    pointer_default(unique)
+]
+interface IFWXNetConfigDetectionSnapshot : IUnknown
+{
+    HRESULT GetNetworkSets(
+        [out] IFWXNetworkSets** pNetworkSets
+        );
+
+    HRESULT GetNetworkElements(
+        [out] IFWXNetworkElements** pNetworkElements
+        );
+
+    HRESULT GetNetworkAdapters(
+        [out] IFWXNetworkAdapters** pNetworkAdapters
+        );
+
+    HRESULT GetNetworkAddresses(
+        [out] IFWXNetworkAddresses** pNetworkAddresses
+        );
+
+    HRESULT GetIpRangesToNetworkElements(
+        [out] FwxIpRangesToNetworkElements** ppIpRanges
+        );
+
+    HRESULT LookupNetworkElementByAddress(
+        [in]  LPSOCKADDR Address,
+        [in]  DWORD AddressLength,
+        [out] IFWXNetworkElement** ppNetworkElement
+        );
+
+    HRESULT LookupNetworkElementByGuid(
+        [in]  GUID* pguidNetworkElement,
+        [out] IFWXNetworkElement** ppNetElement
+        );
+
+    HRESULT GetLocalHostNetworkElement(
+        [out] IFWXNetworkElement** ppNetworkElement
+        );
+
+    HRESULT GetDefaultExternalNetworkElement(
+        [out] IFWXNetworkElement** ppNetworkElement
+        );
+
+    HRESULT GetVpnClientsNetworkElement(
+        [out] IFWXNetworkElement** ppNetworkElement
+        );
+
+    HRESULT GetQuarantinedVpnClientsNetworkElement(
+        [out] IFWXNetworkElement** ppNetworkElement
+        );
+};
+
+[
+    object,
+    uuid(F4DAF10A-38CB-4da8-BC8F-3BBA1BB0E8E0),  // IID_IFWXNetConfigDetector
+    pointer_default(unique)
+]
+interface IFWXNetConfigDetector : IUnknown
+{
+    HRESULT Register(
+        [in]  IFWXNetConfigDetectionNotification* ipNcdNotification,
+        [in]  BOOL fIssueAllNotifications,
+        [out] unsigned int* puiNcdRegistrationHandle
+        );
+
+    HRESULT Unregister(
+        [in] unsigned int uiNcdRegistrationHandle
+        );
+
+    HRESULT LookupNetworkElementByAddress(
+        [in]  LPSOCKADDR Address,
+        [in]  DWORD AddressLength,
+        [out] IFWXNetworkElement** ppIFWXNetworkElement
+        );
+
+    HRESULT GetCurrentSnapshot(
+        [out] IFWXNetConfigDetectionSnapshot** ppIFWXNetConfigDetectionSnapshot
+        );
+};
+
+
+[
+    object,
+    uuid(1220422a-60b5-42cc-997d-decb2dc357c6),  // IID_IFWXPLowResourceRecoverer
+    pointer_default(unique)
+]
+interface IFWXLowResourceRecoverer : IUnknown
+{
+    HRESULT RegisterForLowResourceRecovery(
+        [in] IFWXLowResourceRecoveryOperation* pIFWXLowResourceRecoveryOperation,
+        [in] DWORD UserData,
+        [out] DWORD* Cookie
+        );
+
+    HRESULT UnregisterFromLowResourceRecovery(
+        [in] DWORD dwCookie
+        );
+
+    HRESULT SignalLowResourceFailure(
+        [in] DWORD hCookie
+        );
+};
+
+
+[
+    object,
+    uuid(76fe2997-7913-4c57-b23b-9a0eca05a54e),  // IID_IFWXPLowResourceRecoveryOperation
+    pointer_default(unique)
+]
+interface IFWXLowResourceRecoveryOperation : IUnknown
+{
+    HRESULT Recover(
+        DWORD UserData
+        );
+};
+
+

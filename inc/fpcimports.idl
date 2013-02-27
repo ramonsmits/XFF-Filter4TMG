@@ -1,0 +1,27 @@
+/*++
+
+Copyright (c) Microsoft Corporation. All rights reserved.  
+THIS CODE IS MADE AVAILABLE AS IS, WITHOUT WARRANTY OF ANY KIND. 
+THE ENTIRE RISK OF THE USE OR THE RESULTS FROM THE USE OF THIS CODE REMAINS WITH THE USER. 
+USE AND REDISTRIBUTION OF THIS CODE, WITH OR WITHOUT MODIFICATION, IS HEREBY PERMITTED.
+
+--*/
+
+/*++
+
+Module Name:
+
+    FpcImports.idl
+
+--*/
+[
+    version(0.0),
+    local
+]
+
+interface imports
+
+{
+#define MIDL_PASS
+#include "FpcImports.h"
+}
