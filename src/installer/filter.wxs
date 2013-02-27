@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+	<Fragment>
+		<DirectoryRef Id="INSTALLFOLDER">
+			<Component Id="filter" Guid="8418CFD5-176F-4A88-B0CD-98407911900A" Win64="yes">
+				<File Id="XFF_Filter.dll" KeyPath="yes" Source="..\..\_build\Release.x64\XFF-Filter.dll" Checksum="yes" SelfRegCost="1" />
+			</Component>
+		</DirectoryRef>
+	</Fragment>
+</Wix>

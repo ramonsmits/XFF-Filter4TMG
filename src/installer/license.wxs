@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+	<Fragment>
+		<DirectoryRef Id="INSTALLFOLDER">
+			<Component Id="license" Guid="B3EBE36D-84CA-4B16-A6DD-F47AF4481772" Win64="yes">
+				<File Id="license.txt" KeyPath="yes" Source="..\..\license.txt" />
+			</Component>
+		</DirectoryRef>
+	</Fragment>
+</Wix>

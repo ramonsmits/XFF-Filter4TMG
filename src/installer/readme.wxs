@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+	<Fragment>
+		<DirectoryRef Id="INSTALLFOLDER">
+			<Component Id="readme" Guid="5C7D6B67-A778-4B39-961B-5C480BE795F5" Win64="yes">
+				<File Id="readme.md" KeyPath="yes" Source="..\..\readme.md" />
+			</Component>
+		</DirectoryRef>
+	</Fragment>
+</Wix>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+	<Product Id="*" Name="XFF-Filter4TMG" Language="1033" Version="1.1.0.0" Manufacturer="ramonsmits.com" UpgradeCode="9c88748c-d0b9-4947-a00d-c15f010bfb97">
+		<Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" Platform="x64" />
+
+		<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+		<MediaTemplate />
+
+		<Feature Id="ProductFeature" Title="XFF-Filter for TMG" Level="1">
+			<ComponentRef Id="filter" />
+			<ComponentRef Id="readme" />
+			<ComponentRef Id="license" />
+		</Feature>
+	</Product>
+
+	<Fragment>
+		<Directory Id="TARGETDIR" Name="SourceDir">
+			<Directory Id="ProgramFiles64Folder">
+				<Directory Id="INSTALLFOLDER" Name="Microsoft Forefront Threat Management Gateway" />
+			</Directory>
+		</Directory>
+	</Fragment>
+
+</Wix>

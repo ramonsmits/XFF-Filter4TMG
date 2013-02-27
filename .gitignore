@@ -6,3 +6,5 @@
 build
 _*
 *.ncrunchsolution
+obj
+bin
