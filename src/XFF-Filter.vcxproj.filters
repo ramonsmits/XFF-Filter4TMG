@@ -28,7 +28,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Midl Include="..\Microsoft Forefront TMG SDK\inc\msfpccom.idl">
+    <Midl Include="..\..\..\inc\msfpccom.idl">
       <Filter>Source Files</Filter>
     </Midl>
   </ItemGroup>
