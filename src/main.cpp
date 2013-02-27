@@ -1,5 +1,5 @@
+
 #include <windows.h>
-#include <httpfilt.h>
 #include <wpxhttpfilt.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,7 +14,6 @@
 #define STRING_SIZE(str)   (sizeof(str) - 1)
 
 const char X_FORWARDED_FOR[] = "X-Forwarded-For:";
-const char hseparator[] = ", ";
 
 static DWORD OnPreprocHeaders(PHTTP_FILTER_CONTEXT pfc, PHTTP_FILTER_PREPROC_HEADERS pRawData);
 
@@ -36,11 +35,10 @@ BOOL WINAPI GetFilterVersion ( PHTTP_FILTER_VERSION pVer )
     
     pVer->dwFilterVersion = WPX_HTTP_FILTER_REVISION;
 
-    pVer->dwFlags =  SF_NOTIFY_PREPROC_HEADERS;
+    pVer->dwFlags = SF_NOTIFY_ORDER_HIGH | SF_NOTIFY_FLAG_LARGE_SIZE_AWARE | SF_NOTIFY_PREPROC_HEADERS ;
 
     return TRUE;
 }
-
 
 DWORD WINAPI HttpFilterProc (
     PHTTP_FILTER_CONTEXT pfc,
@@ -53,7 +51,7 @@ DWORD WINAPI HttpFilterProc (
 
     switch (NotificationType)
     {
-        case SF_NOTIFY_PREPROC_HEADERS:
+		case SF_NOTIFY_PREPROC_HEADERS:
             dwRet = OnPreprocHeaders(pfc, (PHTTP_FILTER_PREPROC_HEADERS)pvNotification);
             break;
         default:
@@ -65,6 +63,7 @@ DWORD WINAPI HttpFilterProc (
 
     return dwRet;
 }
+
 
 /*
  * OnPreprocHeaders():
